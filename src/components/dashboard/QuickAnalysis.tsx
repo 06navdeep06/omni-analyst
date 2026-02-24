@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Link as LinkIcon, FileText, Loader2, ArrowRight, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 type AnalysisResult = {
   summary: string;
@@ -11,13 +13,23 @@ type AnalysisResult = {
 };
 
 export default function QuickAnalysis() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upload' | 'url'>('upload');
   const [inputValue, setInputValue] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    checkUser();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -114,6 +126,51 @@ export default function QuickAnalysis() {
 
       const data = await response.json();
       setResult(data);
+
+      // If user is logged in, save the report
+      if (user) {
+        try {
+          let filePath = null;
+          
+          // Upload file if exists
+          if (file) {
+            const fileName = `${user.id}/${Date.now()}_${file.name}`;
+            const { error: uploadError } = await supabase.storage
+              .from('uploads')
+              .upload(fileName, file);
+            
+            if (!uploadError) {
+              filePath = fileName;
+            } else {
+                console.warn('File upload failed:', uploadError);
+            }
+          }
+
+          // Insert report
+          const { data: reportData, error: dbError } = await supabase
+            .from('reports')
+            .insert({
+              user_id: user.id,
+              title: file ? file.name : (inputValue.slice(0, 30) + '...'),
+              summary: data.summary,
+              key_insights: data.key_insights, // Postgres JSONB handles array
+              file_path: filePath,
+              file_type: activeTab === 'upload' ? file?.type : 'url',
+            })
+            .select()
+            .single();
+
+          if (dbError) throw dbError;
+
+          if (reportData) {
+            router.push(`/report/${reportData.id}`);
+          }
+        } catch (saveError: any) {
+          console.error('Failed to save report:', saveError);
+          // Don't block the UI, just show the result
+        }
+      }
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An unexpected error occurred.');
