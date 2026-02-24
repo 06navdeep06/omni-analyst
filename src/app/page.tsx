@@ -1,5 +1,6 @@
-import { Upload, FileText, MessageSquare, Settings, LayoutDashboard } from "lucide-react";
+import { FileText, MessageSquare, Settings, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import QuickAnalysis from "@/components/dashboard/QuickAnalysis";
 
 export default function Home() {
   return (
@@ -44,18 +45,7 @@ export default function Home() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Quick Actions */}
             <div className="col-span-full">
-              <div className="rounded-xl border border-border bg-card text-card-foreground shadow p-6">
-                <div className="flex flex-col space-y-1.5 pb-4">
-                  <h3 className="font-semibold leading-none tracking-tight">Quick Analysis</h3>
-                  <p className="text-sm text-muted-foreground">Upload a file or paste a URL to start.</p>
-                </div>
-                <div className="flex items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg h-32 hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Upload className="h-8 w-8" />
-                    <span className="text-sm font-medium">Drag & drop or click to upload</span>
-                  </div>
-                </div>
-              </div>
+              <QuickAnalysis />
             </div>
 
             {/* Recent Activity Placeholder */}
