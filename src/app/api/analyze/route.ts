@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // Initialize OpenAI client with Fireworks configuration
+// Use a placeholder key for build time if the env var is missing
+const apiKey = process.env.FIREWORKS_API_KEY || 'placeholder_key_for_build';
+
 const client = new OpenAI({
-  apiKey: process.env.FIREWORKS_API_KEY,
+  apiKey: apiKey,
   baseURL: "https://api.fireworks.ai/inference/v1",
 });
 
@@ -13,6 +16,11 @@ export async function POST(req: NextRequest) {
 
     if (!content) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+
+    // Check for valid API key at runtime
+    if (!process.env.FIREWORKS_API_KEY) {
+       return NextResponse.json({ error: 'Server configuration error: Missing API Key' }, { status: 500 });
     }
 
     // Construct the messages based on the input type
